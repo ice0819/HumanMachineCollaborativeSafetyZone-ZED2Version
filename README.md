@@ -110,7 +110,7 @@ zed_chessboard/img_r
 
 - Stereolabs ZED SDK 與其 Python API `pyzed.sl`。
 - ROS 2 與 `rclpy`。
-- Techman Robot ROS 2 Driver。
+- Techman Robot 官方 [TM ROS 2 Humble Driver](https://github.com/TechmanRobotInc/tmr_ros2/tree/humble)。
 - TM Driver 提供的 `tm_msgs` 訊息及服務。
 
 ### 5.3 Python 套件
@@ -135,27 +135,119 @@ python -c "import cv2, numpy, matplotlib, pybullet, pyzed.sl, rclpy, tm_msgs; pr
 
 ```bash
 source /opt/ros/humble/setup.bash
-source <ROS2_WORKSPACE>/install/setup.bash
+source "$HOME/tmdriver_ws/install/setup.bash"
 ```
 
-## 6. ROS 2 與 tm_description 建置
+## 6. 安裝 TM ROS 2 Humble 與放置 tm_description
 
-將 TM ROS 2 Driver 與本專案的 `tm_description` 放入 ROS 2 工作區的 `src` 後建置：
+本專案需要 Techman Robot 官方 `tmr_ros2` 的 **Humble 分支**。官方專案包含主程式會用到的 `tm_driver`、`tm_msgs` 與 `tm_description`：
+
+- [TechmanRobotInc/tmr_ros2－humble](https://github.com/TechmanRobotInc/tmr_ros2/tree/humble)
+- [官方 tm_description 位置](https://github.com/TechmanRobotInc/tmr_ros2/tree/humble/tm_description)
+
+### 6.1 安裝建置工具
 
 ```bash
-cd <ROS2_WORKSPACE>
+sudo apt update
+sudo apt install git python3-rosdep python3-colcon-common-extensions
+```
+
+若電腦第一次使用 `rosdep`，先執行一次：
+
+```bash
+sudo rosdep init
+rosdep update
+```
+
+若 `rosdep init` 顯示已經初始化，直接執行 `rosdep update` 即可。
+
+### 6.2 下載官方 TM ROS 2 Humble
+
+先進入本專案目錄並記住路徑，再建立 TM Driver 工作區：
+
+```bash
+cd <專案目錄>
+export HRC_PROJECT="$(pwd)"
+export TMDRIVER_WS="$HOME/tmdriver_ws"
+
+mkdir -p "$TMDRIVER_WS/src"
+git clone --branch humble --single-branch \
+  https://github.com/TechmanRobotInc/tmr_ros2.git \
+  "$TMDRIVER_WS/src/tmr_ros2"
+```
+
+執行後的主要結構應為：
+
+```text
+~/tmdriver_ws/
+└── src/
+    └── tmr_ros2/
+        ├── tm_driver/
+        ├── tm_msgs/
+        ├── tm_description/
+        └── ...
+```
+
+若 `tmr_ros2` 已經存在，不要重複 clone；確認目前使用 `humble` 分支：
+
+```bash
+git -C "$TMDRIVER_WS/src/tmr_ros2" branch --show-current
+```
+
+輸出應為 `humble`。
+
+### 6.3 將本專案的 tm_description 放到官方位置
+
+把本專案 `tm_description` 內的檔案複製到官方 [`tmr_ros2/tm_description`](https://github.com/TechmanRobotInc/tmr_ros2/tree/humble/tm_description) 目錄：
+
+```bash
+cp -a \
+  "$HRC_PROJECT/tm_description/." \
+  "$TMDRIVER_WS/src/tmr_ros2/tm_description/"
+```
+
+這個寫法會將本專案的 `package.xml`、`CMakeLists.txt`、`urdf/`、`xacro/` 與 `meshes/` 合併到官方 `tm_description`，並覆蓋同名檔案。
+
+> 不要複製成 `tmr_ros2/tm_description/tm_description/`。正確位置必須直接是 `tmr_ros2/tm_description/package.xml`。
+
+複製後可檢查：
+
+```bash
+ls "$TMDRIVER_WS/src/tmr_ros2/tm_description"
+ls "$TMDRIVER_WS/src/tmr_ros2/tm_description/urdf/tm5-900.urdf"
+```
+
+### 6.4 安裝相依套件並建置
+
+```bash
 source /opt/ros/humble/setup.bash
-colcon build --symlink-install
+cd "$TMDRIVER_WS"
+
+rosdep install --from-paths src --ignore-src -r -y
+colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
 source install/setup.bash
 ```
 
-確認介面存在：
+每次開啟新終端機，都必須重新 source：
 
 ```bash
+source /opt/ros/humble/setup.bash
+source "$HOME/tmdriver_ws/install/setup.bash"
+```
+
+### 6.5 驗證安裝結果
+
+```bash
+ros2 pkg prefix tm_driver
+ros2 pkg prefix tm_msgs
+ros2 pkg prefix tm_description
+
 ros2 interface show tm_msgs/msg/FeedbackState
 ros2 interface show tm_msgs/srv/SendScript
 ros2 interface show tm_msgs/srv/SetEvent
 ```
+
+三個 `ros2 pkg prefix` 都應回傳 `tmdriver_ws/install` 下的安裝路徑，三個 interface 指令則應顯示對應欄位定義。
 
 ## 7. 棋盤格校正準備
 
@@ -223,7 +315,7 @@ python tcp_to_base.py
 
 ```bash
 source /opt/ros/humble/setup.bash
-source <ROS2_WORKSPACE>/install/setup.bash
+source "$HOME/tmdriver_ws/install/setup.bash"
 cd <專案目錄>
 source .venv/bin/activate
 ```
@@ -310,7 +402,7 @@ ros2 interface show tm_msgs/srv/SetEvent
 
 ```bash
 source /opt/ros/humble/setup.bash
-source <ROS2_WORKSPACE>/install/setup.bash
+source "$HOME/tmdriver_ws/install/setup.bash"
 ros2 run tm_driver tm_driver robot_ip:=<TM_ROBOT_IP>
 ```
 
@@ -325,7 +417,7 @@ ros2 topic echo /feedback_states --once
 
 ```bash
 source /opt/ros/humble/setup.bash
-source <ROS2_WORKSPACE>/install/setup.bash
+source "$HOME/tmdriver_ws/install/setup.bash"
 cd <專案目錄>
 source .venv/bin/activate
 python main.py
