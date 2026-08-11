@@ -1,0 +1,16 @@
+# Python 3.10 建議版本
+# 安裝：python3 -m pip install -r requirements.txt
+
+# main.py、capture.py 與共用數值/影像處理
+numpy>=1.23,<2.0
+opencv-python>=4.8,<5.0
+matplotlib>=3.7,<4.0
+pybullet>=3.2.6
+
+# tcp_to_base.py 使用；不影響 main.py
+scipy>=1.10,<2.0
+
+# 下列元件不可由一般 requirements.txt 正確提供，必須另外安裝：
+# - pyzed.sl：由 Stereolabs ZED SDK 安裝，版本須符合 ZED SDK/CUDA/Python。
+# - rclpy：由所選 ROS 2 發行版安裝。
+# - tm_msgs：由 Techman Robot ROS 2 Driver 工作區建置並 source。
