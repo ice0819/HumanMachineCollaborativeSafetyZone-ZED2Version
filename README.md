@@ -33,7 +33,9 @@ python main.py
 8. 依人體關節點是否進入安全區域，切換快速、慢速、PAUSE 與 RESUME。
 9. 按 `Ctrl+C` 結束時，將量測結果寫入 `output/`。
 
-## 3. 目前目錄與檔案功用
+## 3. 安裝完成後的目錄與檔案功用
+
+本專案下載後**預設不包含 `tm_description`**。請先依第 6 節安裝官方 TM ROS 2 Humble，並把官方 `tm_description` 複製到專案根目錄。完成後的目錄應如下：
 
 ```text
 專案目錄/
@@ -48,7 +50,7 @@ python main.py
 │   │   └── left_N.png
 │   └── img_r/
 │       └── right_N.png
-└── tm_description/
+└── tm_description/       # 需由官方 tmr_ros2 自行下載並複製
     ├── package.xml
     ├── CMakeLists.txt
     ├── urdf/
@@ -65,6 +67,7 @@ python main.py
 | `images.png` | PyBullet 地板貼圖；缺少時仍可執行，但不會套用貼圖。 |
 | `zed_chessboard/img_l` | 左鏡頭校正照片。 |
 | `zed_chessboard/img_r` | 右鏡頭校正照片；數字編號必須與左圖一致。 |
+| `tm_description` | 本專案預設不提供，必須從官方 `tmr_ros2` Humble 分支下載並放入專案根目錄。 |
 | `tm_description/urdf` | TM 機械手臂 URDF；主程式使用 `tm5-900.urdf`。 |
 | `tm_description/xacro` | 各 TM 機型的 Xacro 描述。 |
 | `tm_description/meshes` | URDF 顯示及碰撞模型使用的 OBJ、MTL、STL。 |
@@ -74,7 +77,7 @@ python main.py
 
 ## 4. 路徑規則
 
-所有專案資源都以 Python 程式所在資料夾為基準，不綁定 `/home/...` 等絕對路徑。因此整個專案搬移後，不需要修改校正照片、URDF、貼圖或輸出位置。
+所有專案資源都以 Python 程式所在資料夾為基準，不綁定 `/home/...` 等絕對路徑。執行主程式前，必須先依第 6 節將官方 `tm_description` 放入專案根目錄；完成後整個專案搬移不需要修改校正照片、URDF、貼圖或輸出位置。
 
 主要相對路徑如下：
 
@@ -138,7 +141,7 @@ source /opt/ros/humble/setup.bash
 source "$HOME/tmdriver_ws/install/setup.bash"
 ```
 
-## 6. 安裝 TM ROS 2 Humble 與放置 tm_description
+## 6. 安裝 TM ROS 2 Humble 並下載 tm_description
 
 本專案需要 Techman Robot 官方 `tmr_ros2` 的 **Humble 分支**。官方專案包含主程式會用到的 `tm_driver`、`tm_msgs` 與 `tm_description`：
 
@@ -196,26 +199,31 @@ git -C "$TMDRIVER_WS/src/tmr_ros2" branch --show-current
 
 輸出應為 `humble`。
 
-### 6.3 將本專案的 tm_description 放到官方位置
+### 6.3 將官方 tm_description 放入本專案
 
-把本專案 `tm_description` 內的檔案複製到官方 [`tmr_ros2/tm_description`](https://github.com/TechmanRobotInc/tmr_ros2/tree/humble/tm_description) 目錄：
+本專案預設沒有 `tm_description`。請從官方 [`tmr_ros2/tm_description`](https://github.com/TechmanRobotInc/tmr_ros2/tree/humble/tm_description) 將整個資料夾複製到本專案根目錄：
 
 ```bash
-cp -a \
-  "$HRC_PROJECT/tm_description/." \
-  "$TMDRIVER_WS/src/tmr_ros2/tm_description/"
+cp -a "$TMDRIVER_WS/src/tmr_ros2/tm_description" "$HRC_PROJECT/"
 ```
 
-這個寫法會將本專案的 `package.xml`、`CMakeLists.txt`、`urdf/`、`xacro/` 與 `meshes/` 合併到官方 `tm_description`，並覆蓋同名檔案。
+複製來源與目的地如下：
 
-> 不要複製成 `tmr_ros2/tm_description/tm_description/`。正確位置必須直接是 `tmr_ros2/tm_description/package.xml`。
+```text
+來源：~/tmdriver_ws/src/tmr_ros2/tm_description/
+目的：<專案目錄>/tm_description/
+```
+
+> 不要只複製 `urdf`，也不要放成 `<專案目錄>/tm_description/tm_description/`。必須保留官方資料夾內的 `package.xml`、`CMakeLists.txt`、`urdf/`、`xacro/`、`meshes/` 等完整內容。
 
 複製後可檢查：
 
 ```bash
-ls "$TMDRIVER_WS/src/tmr_ros2/tm_description"
-ls "$TMDRIVER_WS/src/tmr_ros2/tm_description/urdf/tm5-900.urdf"
+ls "$HRC_PROJECT/tm_description"
+ls "$HRC_PROJECT/tm_description/urdf/tm5-900.urdf"
 ```
+
+第二條指令必須能找到 `tm5-900.urdf`，否則 `main.py` 無法啟動 PyBullet 機械手臂模型。
 
 ### 6.4 安裝相依套件並建置
 
@@ -516,7 +524,7 @@ Ctrl+C
 
 ### PyBullet 無法載入 URDF 或 mesh
 
-確認 `tm_description` 完整存在並已經 colcon 建置及 source。`main.py` 以相對路徑讀取 URDF，而 URDF 內的網格使用 `package://tm_description/...`。
+確認已依第 6.3 節將官方 `tm_description` 完整複製到本專案根目錄，且 TM ROS 2 工作區已經 colcon 建置及 source。`main.py` 以相對路徑讀取 URDF，而 URDF 內的網格使用 `package://tm_description/...`。
 
 ### 人體骨架方向相反或位置偏移
 
